@@ -1,14 +1,23 @@
 package bigdatastage2;
 
 import io.github.cdimascio.dotenv.Dotenv;
+
+import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
+import com.mongodb.MongoException;
 import com.mongodb.ServerAddress;
+import com.mongodb.ServerApi;
+import com.mongodb.ServerApiVersion;
+import com.mongodb.ServerApi;
+import com.mongodb.ServerApiVersion;
 import com.mongodb.client.*;
 import com.mongodb.client.result.InsertManyResult;
 import org.bson.Document;
 
 import java.io.FileNotFoundException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
+import java.net.URLEncoder;
 
 public class RepositoryConnection {
 
@@ -18,19 +27,44 @@ public class RepositoryConnection {
 
     String user = dotenv.get("SERVICES_USER");
     String password = dotenv.get("SERVICES_PASSWORD");
-    String host = dotenv.get("MONGO_HOST");
-    String port = dotenv.get("MONGO_PORT");
+    // String host = dotenv.get("MONGO_HOST");
+    // String port = dotenv.get("MONGO_PORT");
 
-    String uri = String.format(
-        "mongodb://%s:%s@%s:%s/?authSource=admin",
-        user, password, host, port);
+    String enc_user = "";
+    try {
+      enc_user = URLEncoder.encode(user, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      e.printStackTrace();
+    }
 
-    try (MongoClient mongoClient = MongoClients.create(uri)) {
-      // Wenn Verbindung klappt, werden die Datenbanken aufgelistet
-      mongoClient.listDatabaseNames().forEach(dbName -> System.out.println("DB gefunden: " + dbName));
-      System.out.println("✅ Verbindung zur MongoDB erfolgreich!");
-    } catch (Exception e) {
-      System.err.println("❌ Verbindung fehlgeschlagen: " + e.getMessage());
+    String enc_password = "";
+    try {
+      enc_password = URLEncoder.encode(password, "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      e.printStackTrace();
+    }
+
+    String connectionString = String.format("mongodb+srv://%s:%s@bigdataproject.0bhcyld.mongodb.net/?retryWrites=true&w=majority&appName=BigDataProject", enc_user, enc_password);
+
+    ServerApi serverApi = ServerApi.builder()
+        .version(ServerApiVersion.V1)
+        .build();
+
+    MongoClientSettings settings = MongoClientSettings.builder()
+        .applyConnectionString(new ConnectionString(connectionString))
+        .serverApi(serverApi)
+        .build();
+
+    // Create a new client and connect to the server
+    try (MongoClient mongoClient = MongoClients.create(settings)) {
+      try {
+        // Send a ping to confirm a successful connection
+        MongoDatabase database = mongoClient.getDatabase("admin");
+        database.runCommand(new Document("ping", 1));
+        System.out.println("Pinged your deployment. You successfully connected to MongoDB!");
+      } catch (MongoException e) {
+        e.printStackTrace();
+      }
     }
   }
 

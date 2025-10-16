@@ -32,6 +32,7 @@ public class SearchApi {
     *  This function will return list of book ids, that include all the terms. */
     private static List<Integer> searchTerm(Context ctx, String term) {
         // TODO
+        return List.of();
     }
 
     /* This method will get a list of book ids and metadata and it will
@@ -39,11 +40,13 @@ public class SearchApi {
     *  This will need to validate the metadata from the db, not the index. */
     private static List<Integer> searchMetadata(Context ctx, Pair<String, String> metadata) {
         // TODO
+        return List.of();
     }
 
     /* This method will get two lists of book ids and will return only those ids that are in both lists. */
     private static List<Integer> intersection(List<Integer> list1, List<Integer> list2) {
         // TODO
+        return List.of();
     }
 
    // private static void handledata(Context ctx) {
