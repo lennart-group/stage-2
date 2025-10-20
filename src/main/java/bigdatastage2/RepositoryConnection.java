@@ -21,7 +21,7 @@ import java.net.URLEncoder;
 
 public class RepositoryConnection {
 
-  public static void main(String[] args) throws FileNotFoundException {
+  public static MongoDatabase[] connectToDB() throws FileNotFoundException {
 
     Dotenv dotenv = Dotenv.load();
 
@@ -56,16 +56,21 @@ public class RepositoryConnection {
         .build();
 
     // Create a new client and connect to the server
-    try (MongoClient mongoClient = MongoClients.create(settings)) {
+    MongoClient mongoClient = MongoClients.create(settings);
       try {
         // Send a ping to confirm a successful connection
-        MongoDatabase database = mongoClient.getDatabase("admin");
-        database.runCommand(new Document("ping", 1));
+        MongoDatabase booksDatabase = mongoClient.getDatabase("BigData");
+        booksDatabase.runCommand(new Document("ping", 1));
+        MongoDatabase indexDatabase = mongoClient.getDatabase("invertedIndex");
+        indexDatabase.runCommand(new Document("ping", 1));
         System.out.println("Pinged your deployment. You successfully connected to MongoDB!");
+        return new MongoDatabase[]{booksDatabase, indexDatabase};
       } catch (MongoException e) {
+        System.err.println("Failed to connect to MongoDB!" + e.getMessage());
         e.printStackTrace();
+        System.exit(1);
       }
-    }
+    return null;
   }
 
   private static MongoClient client;
