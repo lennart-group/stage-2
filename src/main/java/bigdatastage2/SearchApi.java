@@ -1,24 +1,14 @@
 package bigdatastage2;
 
 import com.google.gson.Gson;
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ServerApi;
-import com.mongodb.ServerApiVersion;
 import com.mongodb.client.*;
 import com.mongodb.client.model.Filters;
-import io.github.cdimascio.dotenv.Dotenv;
 import io.javalin.Javalin;
 import io.javalin.http.Context;
 import org.bson.Document;
 import org.bson.conversions.Bson;
 
 import java.io.FileNotFoundException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.time.format.DateTimeParseException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -26,14 +16,13 @@ import java.util.stream.Collectors;
 
 public class SearchApi {
   private static final Gson gson = new Gson();
-  private static MongoClient mongoClient;
-  private static MongoDatabase booksDb;
   private static MongoCollection<Document> booksCollection;
   private static MongoDatabase indexDb;
   private static MongoDatabase[] databases;
 
   public static void main(String[] args) {
 
+    // Initialize MongoDB connection
     try {
       databases = RepositoryConnection.connectToDB();
     } catch (FileNotFoundException e) {
@@ -42,9 +31,6 @@ public class SearchApi {
 
     booksCollection = databases[0].getCollection("books");
     indexDb = databases[1];
-
-    // Initialize MongoDB connection
-    // initializeMongoDB();
 
     // Create Javalin server
     Javalin app = Javalin.create(config -> {
@@ -115,7 +101,6 @@ public class SearchApi {
   /* Searches the inverted index for books containing all terms in the query. */
   private static List<Integer> searchTerm(String query) {
     String[] terms = query.toLowerCase().trim().split("\\s+");
-    System.err.println(terms.toString());
 
     if (terms.length == 0) {
       return new ArrayList<>();
@@ -143,10 +128,10 @@ public class SearchApi {
    */
   private static List<Integer> getPostingsForTerm(String term) {
     try {
+      /* Search in the index in collections, which are separated by the first letter of the term */
       MongoCollection<Document> collection = indexDb.getCollection(term.substring(0, 1));
       System.out.println("Searching in the collection: " + collection.getNamespace());
-      Document indexDoc = collection.find(Filters.eq("term", term)).first(); // searches in the collection, named like
-                                                                             // the first letter of the term
+      Document indexDoc = collection.find(Filters.eq("term", term)).first();
       System.out.println(indexDoc);
 
       if (indexDoc == null) {
@@ -168,7 +153,7 @@ public class SearchApi {
     if (bookIds.isEmpty() || (author == null && language == null && yearStr == null)) {
       return bookIds;
     }
-    System.out.println(bookIds.toString() + author + language + yearStr);
+    System.out.println(bookIds + author + language + yearStr);
 
     // Build MongoDB filter
     List<Bson> filters = new ArrayList<>();
@@ -205,7 +190,7 @@ public class SearchApi {
     return filteredIds;
   }
 
-  /* Fetches full book details for the fiven book IDs. */
+  /* Fetches full book details for the given book IDs. */
   private static List<Map<String, Object>> fetchBookDetails(List<Integer> bookIds) {
     if (bookIds.isEmpty()) {
       return new ArrayList<>();
@@ -228,17 +213,12 @@ public class SearchApi {
         bookInfo.put("language", doc.getString("language"));
         String release_date_str = doc.getString("release_date");
         String year = extractLastUpdateYear(release_date_str);
-        if (year == null) {
-          bookInfo.put("year", "unknown");
-        } else {
-          bookInfo.put("year", year);
-        }
+        bookInfo.put("year", Objects.requireNonNullElse(year, "unknown"));
         results.add(bookInfo);
       }
     }
 
     return results;
-
   }
 
   public static String extractLastUpdateYear(String text) {
@@ -249,7 +229,7 @@ public class SearchApi {
       return matcher.group(1);
     }
 
-    // 2️⃣ Fallback: falls kein Update-Datum, nimm das erste Datum im Text
+    // Fallback: When there is no Updated date, use the first date that occurs in text
     Pattern datePattern = Pattern.compile("([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})");
     matcher = datePattern.matcher(text);
 
