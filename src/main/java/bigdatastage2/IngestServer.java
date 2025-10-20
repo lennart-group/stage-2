@@ -8,6 +8,7 @@ import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.Projections;
 import com.mongodb.client.model.ReplaceOptions;
 
 import java.io.FileNotFoundException;
@@ -124,7 +125,7 @@ public class IngestServer {
     long bookCount = booksCollection.countDocuments();
     List<Integer> idList = new ArrayList<>();
 
-    try (MongoCursor<Document> cursor = booksCollection.find().iterator()) {
+    try (MongoCursor<Document> cursor = booksCollection.find().projection(Projections.include("id")).iterator()) {
       while (cursor.hasNext()) {
         Document doc = cursor.next();
         idList.add(doc.getInteger("id"));
