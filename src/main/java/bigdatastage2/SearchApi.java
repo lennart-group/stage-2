@@ -37,6 +37,13 @@ public class SearchApi {
       config.http.defaultContentType = "application/json";
     }).start(7003); // Different port from IngestServer
 
+      // Add CORS support
+      app.before(ctx -> {
+          ctx.header("Access-Control-Allow-Origin", "*");
+          ctx.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+          ctx.header("Access-Control-Allow-Headers", "Content-Type");
+      });
+
     // Health check status
     app.get("/status", ctx -> {
       Map<String, Object> status = Map.of(
