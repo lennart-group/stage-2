@@ -154,34 +154,42 @@ public class SearchApi {
     }
   }
 
-  /* Applies metadata filters (author, language, year) to the list of book IDs. */
-  private static List<Integer> applyMetadataFilters(List<Integer> bookIds, String author, String language,
-      String yearStr) {
-    if (bookIds.isEmpty() || (author == null && language == null && yearStr == null)) {
-      return bookIds;
-    }
-    System.out.println(bookIds + author + language + yearStr);
+    /* Applies metadata filters (author, language, year) to the list of book IDs. */
+    private static List<Integer> applyMetadataFilters(List<Integer> bookIds, String author, String language,
+                                                      String yearStr) {
+        if (bookIds.isEmpty() || (author == null && language == null && yearStr == null)) {
+            return bookIds;
+        }
+        System.out.println("Applying filters: " + bookIds + " author=" + author + " language=" + language + " year=" + yearStr);
 
-    // Build MongoDB filter
-    List<Bson> filters = new ArrayList<>();
-    filters.add(Filters.in("id", bookIds));
+        // Build MongoDB filter
+        List<Bson> filters = new ArrayList<>();
+        filters.add(Filters.in("id", bookIds));
 
-    if (author != null && !author.trim().isEmpty()) {
-      filters.add(Filters.regex("metadata.author", author, "i")); // Case-insensitive
-    }
+        if (author != null && !author.trim().isEmpty()) {
+            // Search in the "author" field directly, case-insensitive
+            filters.add(Filters.regex("author", author, "i"));
+            System.out.println("Added author filter for: " + author);
+        }
 
-    if (language != null && !language.trim().isEmpty()) {
-      filters.add(Filters.regex("metadata.language", language.toLowerCase()));
-    }
+        if (language != null && !language.trim().isEmpty()) {
+            // Search in the "language" field directly, case-insensitive
+            filters.add(Filters.regex("language", language, "i"));
+            System.out.println("Added language filter for: " + language);
+        }
 
-    if (yearStr != null && !yearStr.trim().isEmpty()) {
-      try {
-        int year = Integer.parseInt(yearStr);
-        filters.add(Filters.eq("metadata.year", year));
-      } catch (NumberFormatException e) {
-        System.err.println("Invalid year format: " + yearStr);
-      }
-    }
+        if (yearStr != null && !yearStr.trim().isEmpty()) {
+            try {
+                // Extract the year from the release_date field
+                int year = Integer.parseInt(yearStr);
+                // We need to search for the year in the release_date string using regex
+                String yearPattern = "\\b" + year + "\\b"; // Word boundary to match exact year
+                filters.add(Filters.regex("release_date", yearPattern));
+                System.out.println("Added year filter for: " + year);
+            } catch (NumberFormatException e) {
+                System.err.println("Invalid year format: " + yearStr);
+            }
+        }
 
     Bson combinedFilter = Filters.and(filters);
 
@@ -194,8 +202,9 @@ public class SearchApi {
       }
     }
 
-    return filteredIds;
-  }
+        System.out.println("Filter result count: " + filteredIds.size());
+        return filteredIds;
+    }
 
   /* Fetches full book details for the given book IDs. */
   private static List<Map<String, Object>> fetchBookDetails(List<Integer> bookIds) {
@@ -213,39 +222,37 @@ public class SearchApi {
       while (cursor.hasNext()) {
         Document doc = cursor.next();
 
-        Map<String, Object> bookInfo = new HashMap<>();
-        bookInfo.put("book_id", doc.getInteger("id"));
-        bookInfo.put("title", doc.getString("title"));
-        bookInfo.put("author", doc.getString("author"));
-        bookInfo.put("language", doc.getString("language"));
-        String release_date_str = doc.getString("release_date");
-        String year = extractLastUpdateYear(release_date_str);
-        bookInfo.put("year", Objects.requireNonNullElse(year, "unknown"));
-        results.add(bookInfo);
-      }
+                Map<String, Object> bookInfo = new HashMap<>();
+                bookInfo.put("book_id", doc.getInteger("id"));
+                bookInfo.put("title", doc.getString("title"));
+                bookInfo.put("author", doc.getString("author"));
+                bookInfo.put("language", doc.getString("language"));
+                String release_date_str = doc.getString("release_date");
+                String year = extractYear(release_date_str);
+                bookInfo.put("year", Objects.requireNonNullElse(year, "unknown"));
+                results.add(bookInfo);
+            }
+        }
+
+        return results;
     }
 
-    return results;
-  }
+    /* Extracts just the year from the release_date string. */
+    public static String extractYear(String text) {
+        if (text == null || text.isEmpty()) {
+            return "unknown";
+        }
 
-  public static String extractLastUpdateYear(String text) {
-    Pattern updatePattern = Pattern.compile("Most recently updated:\\s*([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})");
-    Matcher matcher = updatePattern.matcher(text);
+        // Try to find any 4-digit year in the text
+        Pattern yearPattern = Pattern.compile("\\b(\\d{4})\\b");
+        Matcher matcher = yearPattern.matcher(text);
 
-    if (matcher.find()) {
-      return matcher.group(1);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+
+        return "unknown";
     }
-
-    // Fallback: When there is no Updated date, use the first date that occurs in text
-    Pattern datePattern = Pattern.compile("([A-Za-z]+\\s+\\d{1,2},\\s*\\d{4})");
-    matcher = datePattern.matcher(text);
-
-    if (matcher.find()) {
-      return matcher.group(1);
-    }
-
-    return "unknown";
-  }
 
   /* Returns the intersection of two lists. */
   private static List<Integer> intersection(List<Integer> list1, List<Integer> list2) {
