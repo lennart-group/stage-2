@@ -46,19 +46,32 @@
     </dependency>
   </dependencies>
   <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <version>3.3.0</version>
-        <configuration>
-          <archive>
-            <manifest>
-              <mainClass>com.example.service.App</mainClass>
-            </manifest>
-          </archive>
-        </configuration>
-      </plugin>
-    </plugins>
+  <plugins>
+  <!-- build runnable JAR -->
+  <plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-jar-plugin</artifactId>
+    <version>3.3.0</version>
+    <configuration>
+      <archive>
+        <manifest>
+          <!-- Updated to match your actual main class -->
+          <mainClass>bigdatastage2.IndexApi</mainClass>
+        </manifest>
+      </archive>
+    </configuration>
+  </plugin>
+
+  <!-- allows running directly with mvn exec:java -->
+  <plugin>
+    <groupId>org.codehaus.mojo</groupId>
+    <artifactId>exec-maven-plugin</artifactId>
+    <version>3.1.0</version>
+    <configuration>
+      <mainClass>bigdatastage2.IndexApi</mainClass>
+    </configuration>
+  </plugin>
+</plugins>
+
   </build>
 </project>
