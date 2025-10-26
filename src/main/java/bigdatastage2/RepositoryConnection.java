@@ -5,9 +5,6 @@ import io.github.cdimascio.dotenv.Dotenv;
 import com.mongodb.ConnectionString;
 import com.mongodb.MongoClientSettings;
 import com.mongodb.MongoException;
-import com.mongodb.ServerAddress;
-import com.mongodb.ServerApi;
-import com.mongodb.ServerApiVersion;
 import com.mongodb.ServerApi;
 import com.mongodb.ServerApiVersion;
 import com.mongodb.client.*;
@@ -27,8 +24,6 @@ public class RepositoryConnection {
 
     String user = dotenv.get("SERVICES_USER");
     String password = dotenv.get("SERVICES_PASSWORD");
-    // String host = dotenv.get("MONGO_HOST");
-    // String port = dotenv.get("MONGO_PORT");
 
     String enc_user = "";
     try {
