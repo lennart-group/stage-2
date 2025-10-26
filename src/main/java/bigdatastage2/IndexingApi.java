@@ -13,6 +13,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +29,7 @@ public class IndexingApi {
 
   private static MongoCollection<Document> booksCollection;
   private static MongoDatabase indexDb;
-  private static final LocalDate lastUpdate = null;
+  private static LocalDateTime lastUpdate = null;
 
   public static void main(String[] args) {
     try {
@@ -54,7 +55,7 @@ public class IndexingApi {
     app.post("/index/all", IndexingApi::indexAll);
     app.get("/index/status", IndexingApi::indexStatus);
 
-    System.out.println("🚀 Index API running on port" + PORT);
+    System.out.println("🚀 Index API running on port: " + PORT);
   }
 
   // ---------- handlers ----------
@@ -71,21 +72,33 @@ public class IndexingApi {
     String idStr = ctx.pathParam("book_id");
     try {
       int id = Integer.parseInt(idStr);
+      if (alreadyIndexed(id)) {
+        System.out.printf("Book %d already indexed, returning.\n", id);
+        ctx.result(gson.toJson(Map.of(
+            "book_id", id,
+            "index", "already up to date")));
+        return;
+      }
 
-      Optional<String> textOpt = fetchBookText(id);
-      if (textOpt.isEmpty()) {
+      String text = booksCollection.find(Filters.eq("id", id))
+          .first()
+          .getString("content");
+
+      if (text == null) {
         ctx.status(404).result(gson.toJson(Map.of(
             "error", "Book not found: " + id)));
         return;
       }
 
-      processBook(id, textOpt.get());
+      processBook(id, text);
+
+      lastUpdate = LocalDateTime.now();
 
       ctx.result(gson.toJson(Map.of(
           "book_id", id,
           "index", "updated")));
     } catch (NumberFormatException nfe) {
-      ctx.status(400).result(gson.toJson(Map.of("error", "Invalid book id")));
+      ctx.status(400).result("Invalid book_id: must be a number");
     } catch (Exception e) {
       e.printStackTrace();
       ctx.status(500).result(gson.toJson(Map.of("error", e.getMessage())));
@@ -102,14 +115,22 @@ public class IndexingApi {
           Integer id = d.getInteger("id");
           if (id == null)
             continue;
-          if (alreadyIndexed(id))
+          if (alreadyIndexed(id)) {
+            System.out.printf("Book %d already indexed, skipping.\n", id);
             continue;
+          }
 
           String text = d.getString("content");
-          if (text == null)
-            text = "";
+          if (text == null) {
+            ctx.status(404).result(gson.toJson(Map.of(
+                "error", "Book not found: " + id)));
+            return;
+          }
 
           processBook(id, text);
+
+          lastUpdate = LocalDateTime.now();
+
           count++;
         }
       }
@@ -117,7 +138,9 @@ public class IndexingApi {
       ctx.result(gson.toJson(Map.of(
           "books_processed", count,
           "elapsed_time", termsTotal)));
-    } catch (Exception e) {
+    } catch (
+
+    Exception e) {
       e.printStackTrace();
       ctx.status(500).result(gson.toJson(Map.of("error", e.getMessage())));
     }
@@ -129,7 +152,7 @@ public class IndexingApi {
       m.put("books_indexed", countIndexedFromFile());
       m.put("last_update", lastUpdate != null ? lastUpdate.toString() : "unknown");
       Document stats = indexDb.runCommand(new Document("dbStats", 1));
-      double sizeInMB = stats.getDouble("dataSize") / (1024 * 1024);
+      double sizeInMB = stats.getLong("dataSize") / (1024 * 1024);
       m.put("index_size_MB", sizeInMB);
       ctx.result(gson.toJson(m));
     } catch (Exception e) {
