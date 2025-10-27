@@ -1,2 +1,4 @@
 bigdatastage2\RepositoryConnection.class
-bigdatastage2\IngestServer.class
+bigdatastage2\SearchApi.class
+bigdatastage2\IndexingApi.class
+bigdatastage2\IngestingAPI.class

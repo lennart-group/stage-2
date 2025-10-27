@@ -25,11 +25,6 @@
       <version>2.11.0</version>
     </dependency>
     <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-simple</artifactId>
-      <version>2.0.9</version>
-    </dependency>
-    <dependency>
       <groupId>org.mongodb</groupId>
       <artifactId>mongodb-driver-sync</artifactId>
       <version>5.1.0</version> <!-- oder aktuelle Version -->
@@ -46,32 +41,83 @@
     </dependency>
   </dependencies>
   <build>
-  <plugins>
-  <!-- build runnable JAR -->
-  <plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-jar-plugin</artifactId>
-    <version>3.3.0</version>
-    <configuration>
-      <archive>
-        <manifest>
-          <!-- Updated to match your actual main class -->
-          <mainClass>bigdatastage2.IndexApi</mainClass>
-        </manifest>
-      </archive>
-    </configuration>
-  </plugin>
+    <plugins>
 
-  <!-- allows running directly with mvn exec:java -->
-  <plugin>
-    <groupId>org.codehaus.mojo</groupId>
-    <artifactId>exec-maven-plugin</artifactId>
-    <version>3.1.0</version>
-    <configuration>
-      <mainClass>bigdatastage2.IndexApi</mainClass>
-    </configuration>
-  </plugin>
-</plugins>
+      <!-- allows running directly with mvn exec:java -->
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>exec-maven-plugin</artifactId>
+        <version>3.1.0</version>
+        <configuration>
+          <mainClass>bigdatastage2.IndexApi</mainClass>
+        </configuration>
+      </plugin>
+
+      <!-- create fat JAR with dependencies -->
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-shade-plugin</artifactId>
+        <version>3.6.0</version>
+        <executions>
+          <!-- Ingesting API jar build -->
+          <execution>
+            <id>shade-ingesting</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>bigdatastage2.IngestingAPI.IngestingAPI</mainClass>
+                </transformer>
+              </transformers>
+              <finalName>IngestingAPI</finalName>
+              <outputFile>${project.build.directory}/IngestingAPI.jar</outputFile>
+            </configuration>
+          </execution>
+
+          <!-- Indexing API jar build -->
+          <execution>
+            <id>shade-indexing</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>bigdatastage2.IndexingAPI.IndexingAPI</mainClass>
+                </transformer>
+              </transformers>
+              <finalName>IndexingAPI</finalName>
+              <outputFile>${project.build.directory}/IndexingAPI.jar</outputFile>
+            </configuration>
+          </execution>
+
+          <!-- Search API jar build -->
+          <execution>
+            <id>shade-searching</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>bigdatastage2.SearchAPI.SearchAPI</mainClass>
+                </transformer>
+              </transformers>
+              <finalName>SearchAPI</finalName>
+              <outputFile>${project.build.directory}/SearchAPI.jar</outputFile>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
 
   </build>
 </project>
