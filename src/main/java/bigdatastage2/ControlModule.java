@@ -1,6 +1,9 @@
 package bigdatastage2;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.reflect.TypeToken;
 
 import java.io.IOException;
@@ -15,6 +18,8 @@ import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bson.Document;
+
 /**
  * Orchestriert: Ingestion -> (warten) -> Indexing.
  * Hält Buch über bereits verarbeitete book_ids in indexed_books.txt.
@@ -26,9 +31,9 @@ public class ControlModule {
       .build();
   private final Gson gson = new Gson();
 
-  private final String ingestionBase; // z.B. http://ingestion:7001
-  private final String indexingBase;  // z.B. http://indexing:7002
-  private final String searchBase;    // optional, z.B. http://search:7003
+  private String ingestionBase = "http://localhost:7000"; // z.B. http://localhost:7001
+  private String indexingBase = "http://localhost:7004"; // z.B. http://localhost:7002
+  private String searchBase = "http://localhost:7003"; // optional, z.B. http://localhost:7003
 
   private final Path processedListFile; // z.B. control/indexed_books.txt
   private final Set<Integer> processedCache = ConcurrentHashMap.newKeySet();
@@ -38,15 +43,19 @@ public class ControlModule {
     this.indexingBase = stripTrailingSlash(indexingBase);
     this.searchBase = searchBase == null ? null : stripTrailingSlash(searchBase);
     this.processedListFile = processedListFile;
-    try { loadProcessedCache(); } catch (IOException ignored) {}
+    try {
+      loadProcessedCache();
+    } catch (IOException ignored) {
+    }
   }
 
   private static String stripTrailingSlash(String s) {
-    return s != null && s.endsWith("/") ? s.substring(0, s.length()-1) : s;
+    return s != null && s.endsWith("/") ? s.substring(0, s.length() - 1) : s;
   }
 
   private void loadProcessedCache() throws IOException {
-    if (!Files.exists(processedListFile)) return;
+    if (!Files.exists(processedListFile))
+      return;
     try (var lines = Files.lines(processedListFile)) {
       lines.map(String::trim)
           .filter(x -> !x.isEmpty() && x.chars().allMatch(Character::isDigit))
@@ -60,7 +69,8 @@ public class ControlModule {
   }
 
   private synchronized void markProcessed(int bookId) throws IOException {
-    if (processedCache.contains(bookId)) return;
+    if (processedCache.contains(bookId))
+      return;
     Files.createDirectories(Optional.ofNullable(processedListFile.getParent()).orElse(Path.of(".")));
     Files.writeString(processedListFile, bookId + System.lineSeparator(),
         StandardOpenOption.CREATE, StandardOpenOption.APPEND);
@@ -99,7 +109,8 @@ public class ControlModule {
     try {
       HttpResponse<String> st = sendGet(indexingBase + "/index/status", 10);
       out.put("index_status_snapshot", safeJsonToMap(st.body()));
-    } catch (Exception ignored) {}
+    } catch (Exception ignored) {
+    }
 
     // 4) (optional) Search-Caches refreshen, falls ihr so einen Endpoint habt
     try {
@@ -121,26 +132,56 @@ public class ControlModule {
   public List<Map<String, Object>> ingestAndIndexBatch(Collection<Integer> ids) {
     List<Map<String, Object>> results = new ArrayList<>();
     for (int id : ids) {
-      try { results.add(ingestAndIndex(id)); }
-      catch (Exception e) {
+      try {
+        results.add(ingestAndIndex(id));
+      } catch (Exception e) {
         results.add(Map.of(
             "book_id", id,
             "status", "error",
-            "message", e.getMessage()
-        ));
+            "message", e.getMessage()));
       }
     }
     return results;
   }
 
+  public String downloadBook(int bookId) throws Exception {
+    HttpResponse<String> statusResp = sendPost(ingestionBase + "/ingest/status/" + bookId, null, 30);
+    JsonObject json = JsonParser.parseString(statusResp.body()).getAsJsonObject();
+    String status = json.get("status").getAsString();
+    if (status == "available") {
+      return "Book is already in the database.";
+    }
+    HttpResponse<String> ingestResp = sendPost(ingestionBase + "/ingest/" + bookId, null, 30);
+    if (ingestResp.statusCode() != 200) {
+      return "Ingestion failed with status code: " + ingestResp.statusCode();
+    }
+    return "Ingestion completed for book ID: " + bookId;
+  }
+
+  public String indexBook(int bookId) throws Exception {
+    boolean indexed = Files.lines(processedListFile).anyMatch(line -> line.equals(Integer.toString(bookId)));
+    if (indexed) {
+      return "Book " + bookId + " is already indexed.";
+    }
+    HttpResponse<String> indexResp = sendPost(indexingBase + "/index/update/" + bookId, null, 60);
+    if (indexResp.statusCode() != 200) {
+      return "Indexing failed with status code: " + indexResp.statusCode();
+    }
+    return "Indexing completed for book ID: " + bookId;
+  }
+
+  // TODO: Search function
+
   // ---------- helpers ----------
 
   private boolean isIngestionAvailable(int bookId) throws Exception {
     HttpResponse<String> resp = sendGet(ingestionBase + "/ingest/status/" + bookId, 8);
-    if (resp.statusCode() != 200 || resp.body() == null) return false;
+    if (resp.statusCode() != 200 || resp.body() == null)
+      return false;
     Map<String, Object> m = safeJsonToMap(resp.body());
     Object s = m.get("status");
-    if (s == null) s = m.get("state");
+    if (s == null)
+      s = m.get("state");
     String state = s == null ? "" : s.toString().toLowerCase(Locale.ROOT);
     // akzeptiere "available", "ready", "downloaded"
     return state.contains("avail") || state.contains("ready") || state.contains("download");
@@ -148,7 +189,8 @@ public class ControlModule {
 
   private Map<String, Object> safeJsonToMap(String json) {
     try {
-      Type t = new TypeToken<Map<String, Object>>(){}.getType();
+      Type t = new TypeToken<Map<String, Object>>() {
+      }.getType();
       Map<String, Object> m = gson.fromJson(json, t);
       return m == null ? Map.of() : m;
     } catch (Exception e) {
@@ -157,25 +199,28 @@ public class ControlModule {
   }
 
   private static String truncate(String s, int max) {
-    if (s == null) return null;
+    if (s == null)
+      return null;
     return s.length() <= max ? s : s.substring(0, max) + "...";
   }
 
   private boolean poll(CheckedSupplier<Boolean> cond, Duration maxWait, Duration interval) throws Exception {
     long deadline = System.nanoTime() + maxWait.toNanos();
     while (System.nanoTime() < deadline) {
-      if (cond.get()) return true;
+      if (cond.get())
+        return true;
       Thread.sleep(interval.toMillis());
     }
     return false;
   }
 
-  private HttpResponse<String> sendPost(String url, String body, int timeoutSec) throws IOException, InterruptedException {
+  private HttpResponse<String> sendPost(String url, String body, int timeoutSec)
+      throws IOException, InterruptedException {
     HttpRequest.Builder b = HttpRequest.newBuilder()
         .uri(URI.create(url))
         .timeout(Duration.ofSeconds(timeoutSec))
         .POST(body == null ? HttpRequest.BodyPublishers.noBody()
-                           : HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
+            : HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8));
     return http.send(b.build(), HttpResponse.BodyHandlers.ofString());
   }
 
@@ -188,10 +233,15 @@ public class ControlModule {
   }
 
   @FunctionalInterface
-  private interface CheckedSupplier<T> { T get() throws Exception; }
+  private interface CheckedSupplier<T> {
+    T get() throws Exception;
+  }
 
   private static int envInt(String key, int def) {
-    try { return Integer.parseInt(System.getenv().getOrDefault(key, String.valueOf(def))); }
-    catch (Exception e) { return def; }
+    try {
+      return Integer.parseInt(System.getenv().getOrDefault(key, String.valueOf(def)));
+    } catch (Exception e) {
+      return def;
+    }
   }
 }

@@ -90,13 +90,18 @@ public class IngestingAPI {
           contentAndFooter[1]);
       booksCollection.replaceOne(Filters.eq("id", idNum), book, new ReplaceOptions().upsert(true));
       Map<String, Object> response = new LinkedHashMap<>();
-    response.put("book_id", bookId);
-    response.put("status", "downloaded");
-    response.put("path", "BigData.books");
-    ctx.result(gson.toJson(response));
+      response.put("book_id", bookId);
+      response.put("status", "downloaded");
+      response.put("path", "BigData.books");
+      ctx.result(gson.toJson(response));
     } catch (Exception e) {
       System.err.println(e.getMessage());
-      ctx.result(e.getMessage());
+      Map<String, Object> response = new LinkedHashMap<>();
+      response.put("book_id", bookId);
+      response.put("status", "downloaded");
+      response.put("path", "BigData.books");
+      response.put("error", e.getMessage());
+      ctx.result(gson.toJson(response));
     }
   }
 

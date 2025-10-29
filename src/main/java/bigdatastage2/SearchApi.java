@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-public class SearchApi {
+public class SearchAPI {
   private static final Gson gson = new Gson();
   private static MongoCollection<Document> booksCollection;
   private static MongoDatabase indexDb;
@@ -55,7 +55,7 @@ public class SearchApi {
 
     // Main search endpoint: GET
     // /search?q={term}&author={name}&language={code}&year={YYYY}
-    app.get("/search", SearchApi::handleSearch);
+    app.get("/search", SearchAPI::handleSearch);
   }
 
   private static void handleSearch(Context ctx) {

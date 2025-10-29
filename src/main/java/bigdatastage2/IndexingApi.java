@@ -12,13 +12,12 @@ import org.bson.Document;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class IndexingApi {
+public class IndexingAPI {
 
   // ---------- configuration / state ----------
   private static final Gson gson = new Gson();
@@ -50,10 +49,10 @@ public class IndexingApi {
         .start(PORT);
 
     // endpoints
-    app.get("/status", IndexingApi::status);
-    app.post("/index/update/{book_id}", IndexingApi::indexSingle);
-    app.post("/index/all", IndexingApi::indexAll);
-    app.get("/index/status", IndexingApi::indexStatus);
+    app.get("/status", IndexingAPI::status);
+    app.post("/index/update/{book_id}", IndexingAPI::indexSingle);
+    app.post("/index/all", IndexingAPI::indexAll);
+    app.get("/index/status", IndexingAPI::indexStatus);
 
     System.out.println("🚀 Index API running on port: " + PORT);
   }
@@ -230,12 +229,5 @@ public class IndexingApi {
     } catch (IOException e) {
       return 0;
     }
-  }
-
-  private static Optional<String> fetchBookText(int id) {
-    Document doc = booksCollection.find(Filters.eq("id", id)).first();
-    if (doc == null)
-      return Optional.empty();
-    return Optional.ofNullable(doc.getString("content"));
   }
 }

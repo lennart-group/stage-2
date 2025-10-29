@@ -1,4 +1,8 @@
+bigdatastage2\SearchAPI.class
+bigdatastage2\ControllingUnit.class
+bigdatastage2\ControlModule.class
+bigdatastage2\ControlModule$CheckedSupplier.class
+bigdatastage2\IndexingAPI.class
 bigdatastage2\RepositoryConnection.class
-bigdatastage2\SearchApi.class
-bigdatastage2\IndexingApi.class
+bigdatastage2\ControlModule$1.class
 bigdatastage2\IngestingAPI.class

@@ -29,7 +29,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>bigdatastage2.IngestingAPI.IngestingAPI</mainClass>
+                  <mainClass>bigdatastage2.IngestingAPI</mainClass>
                 </transformer>
               </transformers>
               <finalName>IngestingAPI</finalName>
@@ -45,7 +45,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>bigdatastage2.IndexingAPI.IndexingAPI</mainClass>
+                  <mainClass>bigdatastage2.IndexingAPI</mainClass>
                 </transformer>
               </transformers>
               <finalName>IndexingAPI</finalName>
@@ -61,7 +61,7 @@
             <configuration>
               <transformers>
                 <transformer>
-                  <mainClass>bigdatastage2.SearchAPI.SearchAPI</mainClass>
+                  <mainClass>bigdatastage2.SearchAPI</mainClass>
                 </transformer>
               </transformers>
               <finalName>SearchAPI</finalName>
