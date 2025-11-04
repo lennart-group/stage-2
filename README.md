@@ -102,22 +102,6 @@ java -cp target/stage-2-1.0.0.jar bigdatastage2.IngestServer
 # Indexing (port 7004)
 java -cp target/stage-2-1.0.0.jar bigdatastage2.IndexApi
 
-# (optional) Search
-java -cp target/stage-2-1.0.0.jar bigdatastage2.SearchApi
-
-Test Endpoints
-Ingestion
-curl http://localhost:7000/status
-curl -X POST http://localhost:7000/ingest/1
-
-Indexing
-curl http://localhost:7004/status
-curl -X POST http://localhost:7004/index/all
-curl http://localhost:7004/index/summary
-
-Search (when ready)
-curl "http://localhost:<port>/search?q=adventure"
-
 4. Repository structure
 
 ```
