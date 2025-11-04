@@ -44,8 +44,8 @@
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-core</artifactId>
       <version>1.35</version>
-      </dependency>
-      <dependency>
+    </dependency>
+    <dependency>
       <groupId>org.openjdk.jmh</groupId>
       <artifactId>jmh-generator-annprocess</artifactId>
       <version>1.35</version>
@@ -128,9 +128,27 @@
               <outputFile>${project.build.directory}/SearchAPI.jar</outputFile>
             </configuration>
           </execution>
+
+          <!-- Benchmarking jar build -->
+          <execution>
+            <id>shade-benchmarking</id>
+            <phase>package</phase>
+            <goals>
+              <goal>shade</goal>
+            </goals>
+            <configuration>
+              <transformers>
+                <transformer
+                  implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
+                  <mainClass>org.openjdk.jmh.Main</mainClass>
+                </transformer>
+              </transformers>
+              <finalName>Benchmarking</finalName>
+              <outputFile>${project.build.directory}/Benchmarking.jar</outputFile>
+            </configuration>
+          </execution>  
         </executions>
       </plugin>
     </plugins>
-
   </build>
 </project>
