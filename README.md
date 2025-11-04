@@ -18,6 +18,10 @@ The system consists of several independent microservices that communicate throug
 | **MongoDB** | Central database used by all services (Docker container or Atlas cloud). |
 | **Control Module** | Simple orchestrator that triggers ingestion and indexing in sequence. |
 
+## Web Interface
+A simple web-based user interface was also developed to demonstrate the search functionality and to visualize API responses.
+It connects directly to the Search API through REST calls and can be used to test queries from a browser.
+
 ---
 
 ## Technologies
