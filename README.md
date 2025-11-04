@@ -90,9 +90,9 @@ curl "http://localhost:<port>/search?q=adventure"
 
 5. Authors
 
-Daniel Nosek 
-Lennart Schega 
-Domen Kac
-Nico Brockmeyer
-Anna Sowińska
+- Daniel Nosek 
+- Lennart Schega 
+- Domen Kac
+- Nico Brockmeyer
+- Anna Sowińska
 
