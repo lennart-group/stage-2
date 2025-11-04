@@ -1,14 +1,11 @@
 package bigdatastage2;
 
-import com.google.gson.Gson;
-import io.javalin.Javalin;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import io.github.cdimascio.dotenv.Dotenv;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Kleine REST-Schicht zum Auslösen der Orchestrierung.
@@ -28,14 +25,12 @@ public class ControllingUnit {
 
     String ingestionBase = dotenv.get("INGESTING_API");
     String indexingBase = dotenv.get("INDEXING_API");
-    String searchBase = dotenv.get("SEARCH_API");
     String processedPath = dotenv.get("INDEXED_FILES");
 
-    ControlModule control = new ControlModule(ingestionBase, indexingBase, searchBase, Path.of(processedPath));
-
+    ControlModule control = new ControlModule(ingestionBase, indexingBase, Path.of(processedPath));
     Scanner scanner = new Scanner(System.in);
 
-    System.out.println("Please enter an ID of a book, ypu want to process: ");
+    System.out.println("Please enter an ID of a book, you want to process: ");
     String idString = scanner.nextLine();
     scanner.close();
     int bookId;
@@ -55,6 +50,7 @@ public class ControllingUnit {
       for (String line : Files.readAllLines(Path.of(processedPath), StandardCharsets.UTF_8)) {
         if (line.trim().equals(String.valueOf(bookId)))
           System.out.println("Book: " + bookId + " got indexed successfully!");
+          return;
       }
       throw new Exception("Book ID " + bookId + " was not found in the processed list.");
     } catch (Exception e) {

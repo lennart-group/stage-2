@@ -19,6 +19,7 @@ public class SearchAPI {
   private static MongoCollection<Document> booksCollection;
   private static MongoDatabase indexDb;
   private static MongoDatabase[] databases;
+  private static final int PORT = 7003;
 
   public static void main(String[] args) {
 
@@ -35,7 +36,8 @@ public class SearchAPI {
     // Create Javalin server
     Javalin app = Javalin.create(config -> {
       config.http.defaultContentType = "application/json";
-    }).start(7003); // Different port from IngestServer
+    }).start(PORT); // Different port from IngestServer
+    System.out.println("Running on port:" + PORT);
 
       // Add CORS support
       app.before(ctx -> {

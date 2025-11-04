@@ -26,7 +26,7 @@ public class IngestingAPI {
   private static final Gson gson = new Gson();
   private static MongoDatabase[] databases;
   private static MongoCollection<Document> booksCollection;
-  private static final int PORT = 7000;
+  private static final int PORT = 7002;
 
   public static void main(String[] args) {
 
@@ -98,8 +98,7 @@ public class IngestingAPI {
       System.err.println(e.getMessage());
       Map<String, Object> response = new LinkedHashMap<>();
       response.put("book_id", bookId);
-      response.put("status", "downloaded");
-      response.put("path", "BigData.books");
+      response.put("status", "failed");
       response.put("error", e.getMessage());
       ctx.result(gson.toJson(response));
     }
